@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MathFlow — Mental Math Trainer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#050508;--bg2:#0a0a12;--bg3:#111120;--surface:#13131f;--surface2:#1a1a2e;--border:#2a2a45;
+  --cyan:#00f5ff;--green:#39ff14;--purple:#bf5fff;--orange:#ff6b35;--pink:#ff2d78;--yellow:#ffe300;
+  --text:#e8e8f0;--text2:#8888aa;--muted:#44445a;
+  --mono:'JetBrains Mono',monospace;--display:'Orbitron',monospace;
+  --r:8px;--rl:16px;
+  --gcyan:0 0 20px rgba(0,245,255,.4),0 0 60px rgba(0,245,255,.15);
+  --ggreen:0 0 20px rgba(57,255,20,.4),0 0 60px rgba(57,255,20,.15);
+  --gpurple:0 0 20px rgba(191,95,255,.4),0 0 60px rgba(191,95,255,.15);
+  --gpink:0 0 20px rgba(255,45,120,.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;width:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
+::selection{background:rgba(0,245,255,.2);color:var(--cyan)}
+.grid-bg{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,245,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+.layout{position:relative;min-height:100vh;display:flex;flex-direction:column;z-index:1}
+.content{flex:1;padding:24px 20px;max-width:1200px;margin:0 auto;width:100%}
+
+/* NAV */
+.nav{display:flex;align-items:center;gap:24px;padding:12px 24px;background:rgba(10,10,18,.92);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.brand-icon{font-size:18px;filter:drop-shadow(0 0 8px var(--cyan))}
+.brand-text{font-family:var(--display);font-size:16px;font-weight:700;color:var(--cyan);letter-spacing:3px;text-shadow:0 0 20px rgba(0,245,255,.5)}
+.nav-links{display:flex;gap:4px}
+.nav-link{padding:6px 16px;color:var(--text2);text-decoration:none;font-size:11px;font-weight:500;letter-spacing:2px;border-radius:var(--r);border:1px solid transparent;transition:all .2s ease;cursor:pointer;background:transparent;font-family:var(--mono)}
+.nav-link:hover{color:var(--text);border-color:var(--border)}
+.nav-link.active{color:var(--cyan);border-color:rgba(0,245,255,.3);background:rgba(0,245,255,.05);text-shadow:0 0 10px rgba(0,245,255,.5)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.xp-bar{display:flex;flex-direction:column;gap:4px;min-width:160px}
+.xp-label{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lvl-badge{font-family:var(--display);font-size:10px;font-weight:700;color:var(--purple);letter-spacing:1px}
+.xp-amt{font-size:10px;color:var(--muted)}
+.xp-track{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));border-radius:2px;transition:width .5s ease;box-shadow:0 0 6px var(--purple)}
+.streak-badge{font-size:13px;font-weight:700;color:var(--orange);text-shadow:0 0 10px var(--orange);padding:4px 10px;border:1px solid rgba(255,107,53,.3);border-radius:var(--r);background:rgba(255,107,53,.05)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border-radius:var(--r);font-family:var(--mono);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s ease;white-space:nowrap}
+.btn-primary{background:transparent;color:var(--cyan);border:1px solid var(--cyan);box-shadow:0 0 10px rgba(0,245,255,.2)}
+.btn-primary:hover{background:rgba(0,245,255,.1);box-shadow:var(--gcyan);transform:translateY(-1px)}
+.btn-success{background:transparent;color:var(--green);border:1px solid var(--green)}
+.btn-success:hover{background:rgba(57,255,20,.1);box-shadow:var(--ggreen);transform:translateY(-1px)}
+.btn-danger{background:transparent;color:var(--pink);border:1px solid var(--pink)}
+.btn-danger:hover{background:rgba(255,45,120,.1);box-shadow:var(--gpink)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text2)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+.btn-sm{padding:5px 12px;font-size:11px;letter-spacing:1px}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:20px}
+
+/* SETUP PAGE */
+.setup{display:flex;justify-content:center;padding:32px 20px}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:32px;width:100%;max-width:680px;display:flex;flex-direction:column;gap:28px;animation:fadeIn .3s ease}
+.setup-title{font-family:var(--display);font-size:18px;font-weight:700;color:var(--cyan);letter-spacing:4px;text-align:center;text-shadow:0 0 20px rgba(0,245,255,.4)}
+.sec-title{font-size:9px;letter-spacing:3px;color:var(--muted);margin-bottom:12px;font-weight:500}
+.mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mode-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .2s ease;font-family:var(--mono)}
+.mode-btn:hover,.mode-btn.sel{border-color:var(--cyan);background:rgba(0,245,255,.06)}
+.mode-btn.sel{box-shadow:0 0 15px rgba(0,245,255,.1)}
+.mode-icon{font-size:24px}
+.mode-lbl{font-family:var(--display);font-size:10px;letter-spacing:2px;color:var(--text)}
+.mode-desc{font-size:10px;color:var(--muted);text-align:center}
+.lvl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.lvl-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .2s ease;text-align:center;font-family:var(--mono)}
+.lvl-btn:hover,.lvl-btn.sel{border-color:var(--purple);background:rgba(191,95,255,.06)}
+.lvl-btn.sel{box-shadow:0 0 15px rgba(191,95,255,.1)}
+.lvl-num{font-family:var(--display);font-size:22px;font-weight:700;color:var(--purple)}
+.lvl-name{font-size:9px;letter-spacing:1px;color:var(--text)}
+.lvl-desc{font-size:9px;color:var(--muted);line-height:1.3}
+.start-btn{font-family:var(--display)!important;font-size:14px!important;font-weight:700!important;letter-spacing:3px!important;padding:14px 32px!important;width:100%}
+
+/* PLAYING */
+.playing{display:flex;flex-direction:column;gap:16px;animation:fadeIn .25s ease}
+.game-hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rl)}
+.mode-badge{font-family:var(--display);font-size:9px;letter-spacing:3px;color:var(--muted);padding:4px 10px;border:1px solid var(--border);border-radius:4px}
+.timer-disp{font-family:var(--display);font-size:20px;font-weight:700;color:var(--cyan);text-shadow:0 0 12px var(--cyan);flex:1;text-align:center}
+.timer-warn{color:var(--pink)!important;text-shadow:0 0 12px var(--pink)!important;animation:tBlink .8s ease-in-out infinite}
+@keyframes tBlink{0%,100%{opacity:1}50%{opacity:.5}}
+.game-layout{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start}
+.problem-area{display:flex;flex-direction:column;gap:12px}
+.sidebar{position:sticky;top:80px}
+.feedback-msg{text-align:center;font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:2px;height:24px}
+.fb-correct{color:var(--green);text-shadow:0 0 10px var(--green)}
+.fb-wrong{color:var(--pink);text-shadow:0 0 10px var(--pink)}
+
+/* PROBLEM CARD */
+.prob-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:40px 32px;text-align:center;min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;animation:probIn .25s ease}
+@keyframes probIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+.prob-card.c-anim{animation:cFlash .5s ease forwards}
+.prob-card.w-anim{animation:wFlash .5s ease,shake .4s ease}
+@keyframes cFlash{0%{border-color:var(--border)}40%{border-color:var(--green);background:rgba(57,255,20,.06);box-shadow:var(--ggreen)}100%{border-color:var(--border);background:var(--surface)}}
+@keyframes wFlash{0%{border-color:var(--border)}40%{border-color:var(--pink);background:rgba(255,45,120,.06);box-shadow:var(--gpink)}100%{border-color:var(--border);background:var(--surface)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+.prob-lvl{font-family:var(--display);font-size:9px;letter-spacing:3px;color:var(--muted)}
+.prob-expr{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
+.p-num{font-family:var(--display);font-size:clamp(32px,6vw,56px);font-weight:700;color:var(--text);line-height:1}
+.p-op{font-family:var(--display);font-size:clamp(24px,4vw,40px);color:var(--cyan);text-shadow:0 0 12px var(--cyan);line-height:1}
+.p-eq{font-family:var(--display);font-size:clamp(24px,4vw,40px);color:var(--muted);line-height:1}
+.p-q{font-family:var(--display);font-size:clamp(32px,6vw,56px);font-weight:900;color:var(--purple);text-shadow:0 0 20px var(--purple);line-height:1;animation:qBlink 1.5s ease-in-out infinite}
+@keyframes qBlink{0%,100%{opacity:1}50%{opacity:.4}}
+.p-ans{font-family:var(--display);font-size:clamp(32px,6vw,56px);font-weight:700;color:var(--green);text-shadow:0 0 20px var(--green);line-height:1}
+
+/* ANSWER INPUT */
+.ans-wrap{display:flex;gap:8px;align-items:stretch}
+.ans-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;font-family:var(--display);font-size:24px;font-weight:700;color:var(--text);text-align:center;outline:none;transition:border-color .2s,box-shadow .2s;-moz-appearance:textfield}
+.ans-input::-webkit-inner-spin-button,.ans-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.ans-input::placeholder{font-family:var(--mono);font-size:14px;font-weight:400;color:var(--muted)}
+.ans-input:focus{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),0 0 20px rgba(0,245,255,.15)}
+.ans-input:disabled{opacity:.4;cursor:not-allowed}
+.ans-btn{padding:0 20px;background:rgba(0,245,255,.08);border:1px solid rgba(0,245,255,.3);border-radius:var(--r);color:var(--cyan);font-size:20px;cursor:pointer;transition:all .2s ease;flex-shrink:0}
+.ans-btn:hover:not(:disabled){background:rgba(0,245,255,.15);box-shadow:var(--gcyan)}
+.ans-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* STATS PANEL */
+.stats-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;display:flex;flex-direction:column;gap:12px}
+.sp-sec-lbl{font-size:9px;letter-spacing:3px;color:var(--muted);margin-bottom:8px;font-weight:500}
+.sp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sp-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 8px;text-align:center}
+.sp-val{font-family:var(--display);font-size:16px;font-weight:700;line-height:1;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:4px}
+.sp-lbl{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.sp-div{height:1px;background:var(--border)}
+.vc{color:var(--cyan);text-shadow:0 0 8px rgba(0,245,255,.5)}
+.vg{color:var(--green);text-shadow:0 0 8px rgba(57,255,20,.5)}
+.vp{color:var(--purple);text-shadow:0 0 8px rgba(191,95,255,.5)}
+.vo{color:var(--orange);text-shadow:0 0 8px rgba(255,107,53,.5)}
+.vr{color:var(--pink);text-shadow:0 0 8px rgba(255,45,120,.5)}
+
+/* STREAM MODE */
+.stream-wrap{display:flex;flex-direction:column;align-items:center;gap:24px}
+.stream-hint{font-size:9px;letter-spacing:3px;color:var(--muted)}
+.stream-box{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:220px;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);width:100%;max-width:300px}
+.stream-start{font-family:var(--display);font-size:48px;font-weight:700;color:var(--cyan);text-shadow:0 0 20px var(--cyan);line-height:1}
+.stream-step{display:flex;align-items:center;gap:12px;animation:sSlide .3s ease forwards}
+@keyframes sSlide{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.s-op{font-family:var(--display);font-size:28px;color:var(--purple);text-shadow:0 0 10px var(--purple);width:24px;text-align:center}
+.s-val{font-family:var(--display);font-size:28px;font-weight:700;color:var(--text)}
+.dots{display:flex;gap:6px;align-items:center;padding:8px 0}
+.dot{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:dotPulse 1s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+
+/* FINISHED */
+.finished{display:flex;justify-content:center;padding:48px 20px}
+.fin-card{background:var(--surface);border:1px solid rgba(0,245,255,.2);border-radius:var(--rl);padding:40px;width:100%;max-width:520px;text-align:center;animation:fadeIn .4s ease;box-shadow:inset 0 0 60px rgba(0,245,255,.02)}
+.fin-title{font-family:var(--display);font-size:20px;font-weight:700;color:var(--cyan);letter-spacing:4px;margin-bottom:32px;text-shadow:var(--gcyan)}
+.fin-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px}
+.fin-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:16px 8px}
+.fin-val{font-family:var(--display);font-size:28px;font-weight:700;line-height:1;margin-bottom:6px}
+.fin-lbl{font-size:9px;color:var(--muted);letter-spacing:1px}
+.fin-acts{display:flex;gap:12px;justify-content:center}
+
+/* STATS PAGE */
+.stats-page{display:flex;flex-direction:column;gap:20px;animation:fadeIn .3s ease}
+.hero-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.hero-left{flex-shrink:0}
+.player-lv{display:flex;align-items:center;gap:16px}
+.lv-circle{width:72px;height:72px;border-radius:50%;border:2px solid var(--purple);box-shadow:0 0 20px rgba(191,95,255,.4),inset 0 0 20px rgba(191,95,255,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lv-num{font-family:var(--display);font-size:28px;font-weight:900;color:var(--purple);text-shadow:0 0 15px var(--purple)}
+.lv-info{display:flex;flex-direction:column;gap:4px;min-width:180px}
+.lv-lbl{font-size:9px;letter-spacing:3px;color:var(--muted)}
+.xp-total{font-family:var(--display);font-size:16px;font-weight:700;color:var(--text)}
+.xp-outer{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;width:200px;max-width:100%}
+.xp-inner{height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));border-radius:2px;transition:width .6s ease;box-shadow:0 0 8px var(--purple)}
+.xp-next{font-size:10px;color:var(--muted)}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;min-width:240px}
+.h-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center}
+.h-val{font-family:var(--display);font-size:18px;font-weight:700;line-height:1;margin-bottom:4px}
+.h-lbl{font-size:9px;color:var(--muted);letter-spacing:1px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border)}
+.tab-btn{padding:8px 16px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:2px;cursor:pointer;transition:all .2s;margin-bottom:-1px}
+.tab-btn:hover{color:var(--text2)}
+.tab-btn.act{color:var(--cyan)!important;border-bottom-color:var(--cyan)!important}
+.tab-content{animation:fadeIn .2s ease}
+.overview-grid{display:flex;flex-direction:column;gap:20px}
+.ov-sec{display:flex;flex-direction:column;gap:10px}
+
+/* WEEK BARS */
+.week-grid{display:flex;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px 20px;height:120px;align-items:flex-end}
+.day-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+.day-bar{flex:1;width:100%;background:var(--surface2);border-radius:3px 3px 0 0;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.day-fill{background:linear-gradient(180deg,var(--cyan),rgba(0,245,255,.4));border-radius:3px 3px 0 0;transition:height .5s ease;box-shadow:0 0 6px rgba(0,245,255,.3);min-height:2px}
+.day-tot{font-family:var(--display);font-size:10px;color:var(--text2)}
+.day-lbl{font-size:9px;color:var(--muted);letter-spacing:1px}
+
+/* CHARTS */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:20px}
+.chart-ctrls{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.btn-grp{display:flex;gap:4px}
+.p-btn,.m-btn{padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:1px;cursor:pointer;transition:all .2s}
+.p-btn:hover,.m-btn:hover{color:var(--text2);border-color:var(--text2)}
+.p-btn.pa{color:var(--cyan);border-color:var(--cyan);background:rgba(0,245,255,.08)}
+.m-btn.ma-acc{color:var(--cyan);border-color:var(--cyan);background:rgba(0,245,255,.08)}
+.m-btn.ma-tot{color:var(--purple);border-color:var(--purple);background:rgba(191,95,255,.08)}
+.m-btn.ma-xp{color:var(--green);border-color:var(--green);background:rgba(57,255,20,.08)}
+.chart-box{height:220px;position:relative}
+
+/* LEADERBOARD */
+.lb-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.lb-hdr,.lb-row{display:grid;grid-template-columns:36px 1fr 70px 80px 50px;gap:8px;padding:10px 16px;align-items:center;font-size:12px}
+.lb-hdr{background:var(--surface2);border-bottom:1px solid var(--border);font-size:9px;letter-spacing:2px;color:var(--muted);font-weight:500}
+.lb-row{border-bottom:1px solid rgba(42,42,69,.5);transition:background .15s}
+.lb-row:last-child{border-bottom:none}
+.lb-row:hover{background:var(--surface2)}
+.lb-t1{background:rgba(255,227,0,.04)}
+.lb-t2{background:rgba(180,180,200,.03)}
+.lb-t3{background:rgba(205,127,50,.04)}
+.lb-rank{font-size:13px;text-align:center}
+.lb-date{color:var(--text2);font-size:11px}
+.lb-mode{font-size:9px;letter-spacing:1px;color:var(--muted)}
+.lb-score{font-family:var(--display);font-size:13px;color:var(--cyan);text-align:right}
+.lb-acc{font-family:var(--display);font-size:11px;font-weight:700;text-align:right}
+.acc-hi{color:var(--green)}.acc-mid{color:var(--orange)}.acc-lo{color:var(--pink)}
+.lb-empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:40px;text-align:center}
+.lb-ei{font-size:36px;margin-bottom:12px}
+.lb-et{color:var(--text2);font-size:14px;margin-bottom:6px}
+.lb-eh{color:var(--muted);font-size:11px}
+
+/* ACHIEVEMENTS */
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.ach-badge{display:flex;align-items:center;gap:10px;padding:12px;border-radius:var(--r);border:1px solid var(--border);position:relative;transition:all .2s}
+.ach-badge.ach-done{background:var(--surface2);border-color:rgba(0,245,255,.25);box-shadow:inset 0 0 20px rgba(0,245,255,.03)}
+.ach-badge.ach-lock{background:var(--surface);opacity:.45;filter:grayscale(.6)}
+.ach-badge.ach-done:hover{border-color:rgba(0,245,255,.4);transform:translateY(-1px)}
+.ach-icon{font-size:24px;flex-shrink:0}
+.ach-info{flex:1;min-width:0}
+.ach-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ach-desc{font-size:10px;color:var(--muted);line-height:1.3}
+.ach-check{color:var(--green);font-size:14px;font-weight:700;flex-shrink:0}
+
+/* ACHIEVEMENT TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:1000;background:var(--surface2);border:1px solid var(--yellow);border-radius:var(--rl);padding:16px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 0 30px rgba(255,227,0,.2);animation:toastPop .4s ease forwards;max-width:320px}
+@keyframes toastPop{0%{opacity:0;transform:translateY(20px) scale(.9)}70%{transform:translateY(-4px) scale(1.02)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.toast-exit{animation:toastOut .3s ease forwards}
+@keyframes toastOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}
+.toast-icon{font-size:32px;flex-shrink:0}
+.toast-tag{font-size:9px;letter-spacing:2px;color:var(--yellow);margin-bottom:3px;text-shadow:0 0 8px var(--yellow)}
+.toast-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.toast-desc{font-size:11px;color:var(--text2)}
+
+/* DANGER */
+.danger-zone{display:flex;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--border)}
+.confirm-reset{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* MISC */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:768px){
+  .game-layout{grid-template-columns:1fr}
+  .lvl-grid{grid-template-columns:repeat(3,1fr)}
+  .mode-grid{grid-template-columns:1fr}
+  .fin-stats{grid-template-columns:repeat(2,1fr)}
+  .hero-stats{grid-template-columns:repeat(2,1fr)}
+  .nav{padding:10px 16px;gap:12px}
+  .xp-bar{min-width:120px}
+  .xp-outer{width:120px}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const STORAGE_KEY = 'mf_v2';
+const STORAGE_VERSION = 2;
+
+const LEVEL_LABELS = {1:'Beginner',2:'Easy',3:'Medium',4:'Hard',5:'Expert'};
+const LEVEL_DESCS  = {1:'Numbers ≤20, + −',2:'Numbers ≤100, + − ×',3:'Numbers ≤1000, all ops',4:'3 operands, all ops',5:'5 operands, all ops'};
+
+const LEVEL_CFG = {
+  1:{min:1,max:20,ops:['+','-'],count:2,noNeg:true},
+  2:{min:1,max:100,ops:['+','-','*'],count:2,noNeg:true},
+  3:{min:1,max:1000,ops:['+','-','*','/'],count:2,noNeg:false},
+  4:{min:1,max:100,ops:['+','-','*','/'],count:3,noNeg:false},
+  5:{min:1,max:100,ops:['+','-','*','/'],count:5,noNeg:false},
+};
+
+const XP_TABLE = [0,100,300,700,1500,3000,6000,12000,25000,50000,100000];
+
+const ACHIEVEMENTS = [
+  {id:'first',title:'First Step',desc:'Answer your first problem',icon:'🚀',fn:s=>s.totalAnswered>=1},
+  {id:'a10',title:'Getting Warm',desc:'Answer 10 problems',icon:'🔥',fn:s=>s.totalAnswered>=10},
+  {id:'a100',title:'Century',desc:'100 problems answered',icon:'💯',fn:s=>s.totalAnswered>=100},
+  {id:'a1000',title:'Millennium',desc:'1000 problems answered',icon:'🌟',fn:s=>s.totalAnswered>=1000},
+  {id:'s10',title:'On a Roll',desc:'10 correct in a row',icon:'⚡',fn:s=>s.longestStreak>=10},
+  {id:'s25',title:'Hot Streak',desc:'25 correct in a row',icon:'🎯',fn:s=>s.longestStreak>=25},
+  {id:'s50',title:'Unstoppable',desc:'50 correct in a row',icon:'👑',fn:s=>s.longestStreak>=50},
+  {id:'acc90',title:'Sharp Mind',desc:'90% overall accuracy (50+ solved)',icon:'🎯',fn:s=>s.totalAnswered>=50&&s.totalCorrect/s.totalAnswered>=.9},
+  {id:'lv5',title:'Math Wizard',desc:'Reach player level 5',icon:'🧙',fn:s=>s.level>=5},
+  {id:'lv10',title:'Math Master',desc:'Reach player level 10',icon:'🏆',fn:s=>s.level>=10},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const uid=()=>Date.now()+'-'+Math.random().toString(36).slice(2,7);
+const today=()=>new Date().toISOString().slice(0,10);
+const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
+
+function evalOps(operands, ops) {
+  let r = operands[0];
+  for(let i=0;i<ops.length;i++){
+    const b=operands[i+1];
+    if(ops[i]==='+')r+=b;
+    else if(ops[i]==='-')r-=b;
+    else if(ops[i]==='*')r*=b;
+    else r/=b;
+  }
+  return r;
+}
+
+function genDivPair(max) {
+  const b = rnd(2, Math.min(12, max));
+  const m = rnd(1, Math.floor(max/b));
+  return [b*m, b];
+}
+
+function generateProblem(level) {
+  const cfg = LEVEL_CFG[level];
+  const ops=[], operands=[];
+  operands.push(rnd(cfg.min, cfg.max));
+  for(let i=0;i<cfg.count-1;i++){
+    const op = pick(cfg.ops);
+    ops.push(op);
+    if(op==='/'){
+      const [a,b]=genDivPair(cfg.max);
+      operands[operands.length-1]=a;
+      operands.push(b);
+    } else if(op==='-'&&cfg.noNeg){
+      const cur=evalOps(operands,ops.slice(0,-1));
+      operands.push(rnd(1,Math.max(1,Math.min(cfg.max,cur))));
+    } else {
+      operands.push(rnd(cfg.min, cfg.max));
+    }
+  }
+  return {id:uid(),operands,ops,answer:evalOps(operands,ops),level};
+}
+
+function generateStreamProblem(level) {
+  const cfg=LEVEL_CFG[level];
+  const stepCnt=level<=2?4:level<=4?6:8;
+  const start=rnd(cfg.min,Math.min(cfg.max,200));
+  const steps=[];
+  let cur=start;
+  for(let i=0;i<stepCnt;i++){
+    const ops2=['+','-'];
+    if(level>=2)ops2.push('*');
+    const op=pick(ops2);
+    let val;
+    if(op==='-'&&cfg.noNeg)val=rnd(1,Math.min(cfg.max,cur));
+    else val=rnd(1,Math.min(cfg.max,level<=2?20:50));
+    if(op==='+')cur+=val;
+    else if(op==='-')cur-=val;
+    else cur*=val;
+    steps.push({op,val});
+  }
+  return {id:uid(),start,steps,answer:cur,level};
+}
+
+function getLevelFromXP(xp){
+  for(let i=XP_TABLE.length-1;i>=0;i--)if(xp>=XP_TABLE[i])return i+1;
+  return 1;
+}
+function getXPProgress(xp){
+  const lv=getLevelFromXP(xp);
+  const cur=XP_TABLE[lv-1]??0, next=XP_TABLE[lv]??Infinity;
+  const needed=next-cur, current=xp-cur;
+  const pct=needed===Infinity?100:Math.round(current/needed*100);
+  return {current,needed,pct,level:lv};
+}
+function calcXP({correct,level,timeMs,streak}){
+  if(!correct)return 0;
+  const base=level*10;
+  const tBonus=timeMs<3000?5:timeMs<6000?2:0;
+  const sMul=Math.min(1+streak*.1,3);
+  return Math.round((base+tBonus)*sMul);
+}
+function fmtTime(ms){return ms<1000?ms+'ms':(ms/1000).toFixed(1)+'s'}
+function fmtDur(s){const m=Math.floor(s/60),ss=s%60;return m+':'+(ss<10?'0':'')+ss}
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+const DEFAULT_STATS = {
+  totalAnswered:0,totalCorrect:0,currentStreak:0,longestStreak:0,
+  xp:0,level:1,dailyStats:[],achievements:[],lastActiveDate:''
+};
+const DEFAULT_SCHEMA = {version:STORAGE_VERSION,globalStats:{...DEFAULT_STATS},leaderboard:[],settings:{defaultLevel:1,defaultMode:'practice',timerDuration:900}};
+
+function loadSchema(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(!raw||raw.version<STORAGE_VERSION)return{...DEFAULT_SCHEMA,globalStats:{...DEFAULT_STATS,...(raw?.globalStats??{})},leaderboard:raw?.leaderboard??[],settings:{...DEFAULT_SCHEMA.settings,...(raw?.settings??{})}};
+    return raw;
+  }catch{return{...DEFAULT_SCHEMA}}
+}
+function saveSchema(s){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(s));}catch{}}
+
+function mergeDailyStats(existing, attempt, xpEarned) {
+  const date=new Date(attempt.timestamp).toISOString().slice(0,10);
+  const updated=[...existing];
+  const idx=updated.findIndex(d=>d.date===date);
+  if(idx>=0){
+    const d=updated[idx];
+    const newTotal=d.total+1;
+    updated[idx]={...d,total:newTotal,correct:d.correct+(attempt.correct?1:0),avgTimeMs:Math.round((d.avgTimeMs*d.total+attempt.timeMs)/newTotal),xpEarned:d.xpEarned+xpEarned};
+  }else{
+    updated.push({date,total:1,correct:attempt.correct?1:0,avgTimeMs:attempt.timeMs,bestStreak:0,xpEarned});
+  }
+  return updated.sort((a,b)=>a.date.localeCompare(b.date)).slice(-365);
+}
+
+function checkNewAchs(gs){return ACHIEVEMENTS.filter(a=>!gs.achievements.includes(a.id)&&a.fn(gs));}
+
+// ─ Chart data ──────────────────────────────────────────────────────────────
+function buildChartData(stats,period){
+  if(period==='week'){
+    return Array.from({length:7},(_,i)=>{
+      const date=daysAgo(6-i);
+      const d=stats.find(s=>s.date===date);
+      const label=new Date(date+'T00:00:00').toLocaleDateString('en',{weekday:'short'});
+      return d?{label,...d,accuracy:d.total>0?d.correct/d.total:0}:{label,total:0,correct:0,accuracy:0,avgTimeMs:0,xpEarned:0};
+    });
+  }
+  if(period==='month'){
+    return Array.from({length:30},(_,i)=>{
+      const date=daysAgo(29-i);
+      const d=stats.find(s=>s.date===date);
+      const label=new Date(date+'T00:00:00').toLocaleDateString('en',{month:'short',day:'numeric'});
+      return d?{label,...d,accuracy:d.total>0?d.correct/d.total:0}:{label,total:0,correct:0,accuracy:0,avgTimeMs:0,xpEarned:0};
+    });
+  }
+  // year
+  const filtered=stats.filter(d=>d.date>=daysAgo(364));
+  const months={};
+  filtered.forEach(d=>{
+    const k=d.date.slice(0,7);
+    if(!months[k])months[k]={date:k,total:0,correct:0,avgTimeMs:0,bestStreak:0,xpEarned:0};
+    const m=months[k];
+    const nt=m.total+d.total;
+    m.avgTimeMs=nt>0?(m.avgTimeMs*m.total+d.avgTimeMs*d.total)/nt:0;
+    m.total=nt;m.correct+=d.correct;m.xpEarned+=d.xpEarned;
+    m.bestStreak=Math.max(m.bestStreak,d.bestStreak);
+  });
+  return Object.entries(months).sort(([a],[b])=>a.localeCompare(b)).map(([k,d])=>({
+    label:new Date(k+'-01T00:00:00').toLocaleDateString('en',{month:'short'}),...d,accuracy:d.total>0?d.correct/d.total:0
+  }));
+}
+
+function getTodayStat(dailyStats){
+  const t=today();
+  return dailyStats.find(d=>d.date===t)||{date:t,total:0,correct:0,avgTimeMs:0,bestStreak:0,xpEarned:0};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HOOKS
+// ═══════════════════════════════════════════════════════════════
+function useSchema(){
+  const [schema,setSchemaState]=useState(()=>loadSchema());
+  const setSchema=useCallback(updater=>{
+    setSchemaState(prev=>{
+      const next=typeof updater==='function'?updater(prev):updater;
+      saveSchema(next);
+      return next;
+    });
+  },[]);
+  return [schema,setSchema];
+}
+
+function useCountdown(initial, onExpire){
+  const [left,setLeft]=useState(initial);
+  const [running,setRunning]=useState(false);
+  const onExpRef=useRef(onExpire);
+  onExpRef.current=onExpire;
+  const intRef=useRef(null);
+  const clr=()=>{if(intRef.current){clearInterval(intRef.current);intRef.current=null;}};
+  useEffect(()=>{
+    if(!running)return;
+    intRef.current=setInterval(()=>{
+      setLeft(p=>{if(p<=1){clearInterval(intRef.current);setRunning(false);onExpRef.current?.();return 0;}return p-1;});
+    },1000);
+    return clr;
+  },[running]);
+  const start=useCallback(()=>setRunning(true),[]);
+  const reset=useCallback((s)=>{setRunning(false);clr();setLeft(s??initial);},[initial]);
+  return {left,running,start,reset};
+}
+
+function useStopwatch(){
+  const startRef=useRef(null);
+  const start=useCallback(()=>{startRef.current=Date.now();},[]);
+  const stop=useCallback(()=>{const ms=startRef.current?Date.now()-startRef.current:0;startRef.current=null;return ms;},[]);
+  const reset=useCallback(()=>{startRef.current=null;},[]);
+  return {start,stop,reset};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPONENTS
+// ═══════════════════════════════════════════════════════════════
+
+// ── Navigation ──────────────────────────────────────────────────────────────
+function Navigation({gs,page,setPage}){
+  const xp=getXPProgress(gs.xp);
+  return React.createElement('nav',{className:'nav'},
+    React.createElement('div',{className:'brand'},
+      React.createElement('span',{className:'brand-icon'},'⚡'),
+      React.createElement('span',{className:'brand-text'},'MATHFLOW')
+    ),
+    React.createElement('div',{className:'nav-links'},
+      React.createElement('button',{className:'nav-link'+(page==='train'?' active':''),onClick:()=>setPage('train')},'TRAIN'),
+      React.createElement('button',{className:'nav-link'+(page==='stats'?' active':''),onClick:()=>setPage('stats')},'STATS')
+    ),
+    React.createElement('div',{className:'nav-right'},
+      React.createElement('div',{className:'xp-bar'},
+        React.createElement('div',{className:'xp-label'},
+          React.createElement('span',{className:'lvl-badge'},'LVL '+xp.level),
+          React.createElement('span',{className:'xp-amt'},gs.xp.toLocaleString()+' XP')
+        ),
+        React.createElement('div',{className:'xp-track'},
+          React.createElement('div',{className:'xp-fill',style:{width:xp.pct+'%'}})
+        )
+      ),
+      gs.currentStreak>0&&React.createElement('div',{className:'streak-badge'},'🔥 '+gs.currentStreak)
+    )
+  );
+}
+
+// ── Problem Card ─────────────────────────────────────────────────────────────
+function ProblemCard({problem,feedback,showAnswer}){
+  const ref=useRef(null);
+  const prevFb=useRef('idle');
+  useEffect(()=>{
+    if(feedback==='idle')return;
+    const el=ref.current;
+    if(!el)return;
+    el.classList.remove('c-anim','w-anim');
+    void el.offsetWidth;
+    el.classList.add(feedback==='correct'?'c-anim':'w-anim');
+    prevFb.current=feedback;
+  },[feedback]);
+  const parts=[];
+  problem.operands.forEach((n,i)=>{
+    parts.push({v:n,t:'n'});
+    if(i<problem.ops.length)parts.push({v:problem.ops[i],t:'o'});
+  });
+  return React.createElement('div',{ref,className:'prob-card'},
+    React.createElement('div',{className:'prob-lvl'},'LEVEL '+problem.level),
+    React.createElement('div',{className:'prob-expr'},
+      ...parts.map((p,i)=>React.createElement('span',{key:i,className:p.t==='o'?'p-op':'p-num'},p.v)),
+      React.createElement('span',{className:'p-eq'},'='),
+      showAnswer
+        ?React.createElement('span',{className:'p-ans'},problem.answer)
+        :React.createElement('span',{className:'p-q'},'?')
+    )
+  );
+}
+
+// ── Answer Input ─────────────────────────────────────────────────────────────
+function AnswerInput({value,onChange,onSubmit,disabled}){
+  const ref=useRef(null);
+  useEffect(()=>{if(!disabled)ref.current?.focus();},[disabled]);
+  return React.createElement('div',{className:'ans-wrap'},
+    React.createElement('input',{ref,className:'ans-input',type:'number',inputMode:'numeric',value,onChange:e=>onChange(e.target.value),onKeyDown:e=>{if(e.key==='Enter'&&value.trim()!=='')onSubmit();},disabled,placeholder:'Type answer…',autoComplete:'off'}),
+    React.createElement('button',{className:'ans-btn',onClick:onSubmit,disabled:disabled||value.trim()===''},'↵')
+  );
+}
+
+// ── Stats Panel ──────────────────────────────────────────────────────────────
+function StatsPanel({gs,sessCorrect,sessTotal,sessStreak}){
+  const td=getTodayStat(gs.dailyStats);
+  const acc=sessTotal>0?Math.round(sessCorrect/sessTotal*100):0;
+  const accColor=acc>=80?'vg':acc>=60?'vo':'vr';
+  const allAcc=gs.totalAnswered>0?Math.round(gs.totalCorrect/gs.totalAnswered*100):0;
+  return React.createElement('div',{className:'stats-panel'},
+    React.createElement('div',null,
+      React.createElement('div',{className:'sp-sec-lbl'},'SESSION'),
+      React.createElement('div',{className:'sp-grid'},
+        SI(sessCorrect+'/'+sessTotal,'Correct','vc'),
+        SI(acc+'%','Accuracy',accColor),
+        SI(sessStreak,'Streak','vp','🔥')
+      )
+    ),
+    React.createElement('div',{className:'sp-div'}),
+    React.createElement('div',null,
+      React.createElement('div',{className:'sp-sec-lbl'},'TODAY'),
+      React.createElement('div',{className:'sp-grid'},
+        SI(td.total,'Answered','vc'),
+        SI(td.total>0?Math.round(td.correct/td.total*100)+'%':'—','Accuracy','vg'),
+        SI(td.total>0?fmtTime(td.avgTimeMs):'—','Avg Time','vp')
+      )
+    ),
+    React.createElement('div',{className:'sp-div'}),
+    React.createElement('div',null,
+      React.createElement('div',{className:'sp-sec-lbl'},'ALL TIME'),
+      React.createElement('div',{className:'sp-grid'},
+        SI(gs.totalAnswered.toLocaleString(),'Total','vc'),
+        SI(gs.longestStreak,'Best Streak','vo','👑'),
+        SI(gs.totalAnswered>0?allAcc+'%':'—','Accuracy','vg')
+      )
+    )
+  );
+}
+function SI(val,lbl,color,icon){
+  return React.createElement('div',{className:'sp-item'},
+    React.createElement('div',{className:'sp-val '+color},icon&&React.createElement('span',null,icon),val),
+    React.createElement('div',{className:'sp-lbl'},lbl)
+  );
+}
+
+// ── Number Stream ────────────────────────────────────────────────────────────
+function NumberStream({problem,onComplete}){
+  const [visible,setVisible]=useState(0);
+  const [val,setVal]=useState('');
+  const [done,setDone]=useState(false);
+  const startRef=useRef(Date.now());
+  useEffect(()=>{
+    setVisible(0);setVal('');setDone(false);startRef.current=Date.now();
+    const timers=[];
+    problem.steps.forEach((_,i)=>timers.push(setTimeout(()=>setVisible(i+1),(i+1)*1200)));
+    timers.push(setTimeout(()=>setDone(true),(problem.steps.length+1)*1200));
+    return()=>timers.forEach(clearTimeout);
+  },[problem]);
+  const submit=()=>{const n=parseInt(val,10);if(isNaN(n))return;onComplete(n,Date.now()-startRef.current);};
+  return React.createElement('div',{className:'stream-wrap'},
+    React.createElement('div',{className:'stream-hint'},'KEEP THE NUMBER IN YOUR HEAD'),
+    React.createElement('div',{className:'stream-box'},
+      React.createElement('div',{className:'stream-start'},problem.start),
+      problem.steps.slice(0,visible).map((s,i)=>
+        React.createElement('div',{key:i,className:'stream-step'},
+          React.createElement('span',{className:'s-op'},s.op),
+          React.createElement('span',{className:'s-val'},s.val)
+        )
+      ),
+      visible<problem.steps.length&&React.createElement('div',{className:'dots'},
+        [0,1,2].map(i=>React.createElement('span',{key:i,className:'dot',style:{animationDelay:i*.2+'s'}}))
+      )
+    ),
+    done&&React.createElement('div',{className:'ans-wrap',style:{width:'100%',maxWidth:300}},
+      React.createElement('input',{autoFocus:true,className:'ans-input',type:'number',value:val,onChange:e=>setVal(e.target.value),onKeyDown:e=>{if(e.key==='Enter')submit();},placeholder:'Final result?',style:{fontSize:22}}),
+      React.createElement('button',{className:'ans-btn',onClick:submit,disabled:!val},'↵')
+    )
+  );
+}
+
+// ── Achievement Toast ─────────────────────────────────────────────────────────
+function AchToast({ach,onDone}){
+  const [exiting,setExiting]=useState(false);
+  useEffect(()=>{const t=setTimeout(()=>setExiting(true),3200);return()=>clearTimeout(t);},[]);
+  useEffect(()=>{if(exiting){const t=setTimeout(onDone,350);return()=>clearTimeout(t);}},[exiting,onDone]);
+  return React.createElement('div',{className:'toast'+(exiting?' toast-exit':'')},
+    React.createElement('div',{className:'toast-icon'},ach.icon),
+    React.createElement('div',null,
+      React.createElement('div',{className:'toast-tag'},'ACHIEVEMENT UNLOCKED!'),
+      React.createElement('div',{className:'toast-name'},ach.title),
+      React.createElement('div',{className:'toast-desc'},ach.desc)
+    )
+  );
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+function Charts({dailyStats}){
+  const [period,setPeriod]=useState('week');
+  const [metric,setMetric]=useState('accuracy');
+  const canvasRef=useRef(null);
+  const chartRef=useRef(null);
+  useEffect(()=>{
+    const data=buildChartData(dailyStats,period);
+    const canvas=canvasRef.current;
+    if(!canvas)return;
+    if(chartRef.current)chartRef.current.destroy();
+    const labels=data.map(d=>d.label);
+    const vals=metric==='accuracy'?data.map(d=>Math.round(d.accuracy*100)):metric==='total'?data.map(d=>d.total):data.map(d=>d.xpEarned);
+    const colors={accuracy:'#00f5ff',total:'#bf5fff',xp:'#39ff14'};
+    const col=colors[metric];
+    const ctx=canvas.getContext('2d');
+    const grad=ctx.createLinearGradient(0,0,0,200);
+    const alphas={accuracy:'rgba(0,245,255,',total:'rgba(191,95,255,',xp:'rgba(57,255,20,'};
+    grad.addColorStop(0,alphas[metric]+'0.3)');
+    grad.addColorStop(1,alphas[metric]+'0)');
+    chartRef.current=new Chart(canvas,{
+      type:period==='day'?'bar':'line',
+      data:{labels,datasets:[{label:metric,data:vals,borderColor:col,backgroundColor:period==='day'?col+'44':grad,pointBackgroundColor:col,pointBorderColor:col,pointRadius:period==='month'?2:4,pointHoverRadius:6,borderWidth:2,fill:true,tension:.4}]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#13131f',borderColor:col,borderWidth:1,titleColor:'#8888aa',bodyColor:col,padding:10,callbacks:{label:ctx=>{const v=ctx.parsed.y;if(metric==='accuracy')return ' '+v+'%';if(metric==='total')return ' '+v+' problems';return ' '+v+' XP';}}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#44445a',font:{family:'JetBrains Mono',size:10},maxRotation:45},border:{color:'#2a2a45'}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#44445a',font:{family:'JetBrains Mono',size:10},callback:v=>metric==='accuracy'?v+'%':String(v)},border:{color:'#2a2a45'},min:0,max:metric==='accuracy'?100:undefined}}}
+    });
+    return()=>chartRef.current?.destroy();
+  },[dailyStats,period,metric]);
+  const periods=['week','month','year'];
+  const metrics=[['accuracy','ACCURACY'],['total','PROBLEMS'],['xp','XP']];
+  return React.createElement('div',{className:'chart-wrap'},
+    React.createElement('div',{className:'chart-ctrls'},
+      React.createElement('div',{className:'btn-grp'},
+        periods.map(p=>React.createElement('button',{key:p,className:'p-btn'+(period===p?' pa':''),onClick:()=>setPeriod(p)},p.toUpperCase()))
+      ),
+      React.createElement('div',{className:'btn-grp'},
+        metrics.map(([m,lbl])=>React.createElement('button',{key:m,className:'m-btn'+(metric===m?' ma-'+m:''),onClick:()=>setMetric(m)},lbl))
+      )
+    ),
+    React.createElement('div',{className:'chart-box'},React.createElement('canvas',{ref:canvasRef}))
+  );
+}
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+function Leaderboard({entries}){
+  const top=entries.slice(0,10);
+  if(!top.length)return React.createElement('div',{className:'lb-empty'},
+    React.createElement('div',{className:'lb-ei'},'🏆'),
+    React.createElement('div',{className:'lb-et'},'No sessions recorded yet'),
+    React.createElement('div',{className:'lb-eh'},'Complete a timed session to appear here')
+  );
+  const fmtDate=iso=>new Date(iso).toLocaleDateString('en',{month:'short',day:'numeric'});
+  const accCls=a=>a>=.9?'acc-hi':a>=.7?'acc-mid':'acc-lo';
+  return React.createElement('div',{className:'lb-wrap'},
+    React.createElement('div',{className:'lb-hdr'},
+      React.createElement('span',{className:'lb-rank'},'#'),
+      React.createElement('span',{className:'lb-date'},'DATE'),
+      React.createElement('span',{className:'lb-mode'},'MODE'),
+      React.createElement('span',{className:'lb-score'},'SCORE'),
+      React.createElement('span',{className:'lb-acc'},'ACC')
+    ),
+    top.map((e,i)=>React.createElement('div',{key:i,className:'lb-row'+(i===0?' lb-t1':i===1?' lb-t2':i===2?' lb-t3':'')},
+      React.createElement('span',{className:'lb-rank'},i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1),
+      React.createElement('span',{className:'lb-date'},fmtDate(e.date)),
+      React.createElement('span',{className:'lb-mode'},e.mode.toUpperCase()),
+      React.createElement('span',{className:'lb-score'},e.score.toLocaleString()),
+      React.createElement('span',{className:'lb-acc '+accCls(e.accuracy)},Math.round(e.accuracy*100)+'%')
+    ))
+  );
+}
+
+// ── Achievements Panel ────────────────────────────────────────────────────────
+function AchPanel({gs}){
+  const done=new Set(gs.achievements);
+  return React.createElement('div',{className:'ach-grid'},
+    ACHIEVEMENTS.map(a=>React.createElement('div',{key:a.id,className:'ach-badge '+(done.has(a.id)?'ach-done':'ach-lock')},
+      React.createElement('div',{className:'ach-icon'},a.icon),
+      React.createElement('div',{className:'ach-info'},
+        React.createElement('div',{className:'ach-title'},a.title),
+        React.createElement('div',{className:'ach-desc'},a.desc)
+      ),
+      done.has(a.id)&&React.createElement('div',{className:'ach-check'},'✓')
+    ))
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGES
+// ═══════════════════════════════════════════════════════════════
+
+// ── Training Page ─────────────────────────────────────────────────────────────
+function TrainingPage({schema,setSchema}){
+  const {globalStats:gs,settings}=schema;
+  const [phase,setPhase]=useState('setup');
+  const [mode,setMode]=useState(settings.defaultMode);
+  const [level,setLevel]=useState(settings.defaultLevel);
+  const [problem,setProblem]=useState(()=>generateProblem(settings.defaultLevel));
+  const [streamProb,setStreamProb]=useState(()=>generateStreamProblem(settings.defaultLevel));
+  const [answer,setAnswer]=useState('');
+  const [feedback,setFeedback]=useState('idle');
+  const [showAns,setShowAns]=useState(false);
+  const sessRef=useRef({mode:'practice',startedAt:Date.now(),attempts:[],streak:0,maxStreak:0});
+  const [sessDisp,setSessDisp]=useState({correct:0,total:0,streak:0});
+  const [toasts,setToasts]=useState([]);
+  const sw=useStopwatch();
+  const cd=useCountdown(settings.timerDuration,()=>endSession());
+
+  const startSession=useCallback(()=>{
+    setProblem(generateProblem(level));
+    setStreamProb(generateStreamProblem(level));
+    setAnswer('');setFeedback('idle');setShowAns(false);
+    sessRef.current={mode,startedAt:Date.now(),attempts:[],streak:0,maxStreak:0};
+    setSessDisp({correct:0,total:0,streak:0});
+    setPhase('playing');
+    sw.reset();sw.start();
+    if(mode==='timer'){cd.reset(settings.timerDuration);cd.start();}
+    setSchema(prev=>({...prev,settings:{...prev.settings,defaultLevel:level,defaultMode:mode}}));
+  },[level,mode,sw,cd,settings.timerDuration,setSchema]);
+
+  const processAnswer=useCallback((userAns,timeMs,correctAns)=>{
+    const correct=userAns===correctAns;
+    const sess=sessRef.current;
+    const attempt={problemId:problem.id,correct,timeMs,userAnswer:userAns,correctAnswer:correctAns,level,timestamp:Date.now()};
+    sess.attempts.push(attempt);
+    sess.streak=correct?sess.streak+1:0;
+    sess.maxStreak=Math.max(sess.maxStreak,sess.streak);
+    setFeedback(correct?'correct':'wrong');
+    if(!correct)setShowAns(true);
+    setSessDisp({correct:sess.attempts.filter(a=>a.correct).length,total:sess.attempts.length,streak:sess.streak});
+    // Update global stats
+    setSchema(prev=>{
+      const gs2=prev.globalStats;
+      const newStreak=correct?gs2.currentStreak+1:0;
+      const xp=calcXP({correct,level,timeMs,streak:newStreak});
+      const newXP=gs2.xp+xp;
+      const newTotal=gs2.totalAnswered+1;
+      const newCorrect=gs2.totalCorrect+(correct?1:0);
+      const newLongest=Math.max(gs2.longestStreak,newStreak);
+      const newLevel=getLevelFromXP(newXP);
+      const updated={...gs2,totalAnswered:newTotal,totalCorrect:newCorrect,currentStreak:newStreak,longestStreak:newLongest,xp:newXP,level:newLevel,dailyStats:mergeDailyStats(gs2.dailyStats,attempt,xp),lastActiveDate:today()};
+      const newAchs=checkNewAchs(updated);
+      updated.achievements=[...updated.achievements,...newAchs.map(a=>a.id)];
+      if(newAchs.length)setToasts(t=>[...t,...newAchs]);
+      return{...prev,globalStats:updated};
+    });
+    setTimeout(()=>{
+      setFeedback('idle');setShowAns(false);setAnswer('');
+      if(mode==='stream')setStreamProb(generateStreamProblem(level));
+      else setProblem(generateProblem(level));
+      sw.reset();sw.start();
+    },correct?400:1200);
+  },[problem.id,level,mode,sw,setSchema]);
+
+  const handleSubmit=useCallback(()=>{
+    const n=parseInt(answer,10);if(isNaN(n))return;
+    const ms=sw.stop();processAnswer(n,ms,problem.answer);
+  },[answer,sw,problem.answer,processAnswer]);
+
+  const handleStreamComplete=useCallback((ans,ms)=>processAnswer(ans,ms,streamProb.answer),[streamProb.answer,processAnswer]);
+
+  const endSession=useCallback(()=>{
+    sw.stop();sessRef.current.endedAt=Date.now();
+    const sess=sessRef.current;
+    const total=sess.attempts.length,correct=sess.attempts.filter(a=>a.correct).length;
+    if(total>0){
+      setSchema(prev=>{
+        const entry={date:new Date().toISOString(),score:correct*10*level,accuracy:correct/total,mode};
+        const lb=[...prev.leaderboard,entry].sort((a,b)=>b.score-a.score).slice(0,100);
+        return{...prev,leaderboard:lb};
+      });
+    }
+    setPhase('finished');
+  },[sw,setSchema,level,mode]);
+
+  // ── RENDER SETUP ─────────────────────────────────────────────────────────
+  if(phase==='setup'){
+    const modeOpts=[['practice','∞','Endless practice'],['timer','⏱','15 min challenge'],['stream','〰','Number stream']];
+    return React.createElement('div',{className:'setup'},
+      React.createElement('div',{className:'setup-card'},
+        React.createElement('div',{className:'setup-title'},'TRAINING SETUP'),
+        React.createElement('div',null,
+          React.createElement('div',{className:'sec-title'},'MODE'),
+          React.createElement('div',{className:'mode-grid'},
+            modeOpts.map(([m,icon,desc])=>React.createElement('button',{key:m,className:'mode-btn'+(mode===m?' sel':''),onClick:()=>setMode(m)},
+              React.createElement('span',{className:'mode-icon'},icon),
+              React.createElement('span',{className:'mode-lbl'},m.toUpperCase()),
+              React.createElement('span',{className:'mode-desc'},desc)
+            ))
+          )
+        ),
+        React.createElement('div',null,
+          React.createElement('div',{className:'sec-title'},'DIFFICULTY'),
+          React.createElement('div',{className:'lvl-grid'},
+            [1,2,3,4,5].map(l=>React.createElement('button',{key:l,className:'lvl-btn'+(level===l?' sel':''),onClick:()=>setLevel(l)},
+              React.createElement('span',{className:'lvl-num'},l),
+              React.createElement('span',{className:'lvl-name'},LEVEL_LABELS[l]),
+              React.createElement('span',{className:'lvl-desc'},LEVEL_DESCS[l])
+            ))
+          )
+        ),
+        React.createElement('button',{className:'btn btn-primary start-btn',onClick:startSession},'START SESSION')
+      )
+    );
+  }
+
+  // ── RENDER FINISHED ───────────────────────────────────────────────────────
+  if(phase==='finished'){
+    const total=sessRef.current.attempts.length;
+    const correct=sessRef.current.attempts.filter(a=>a.correct).length;
+    const acc=total>0?Math.round(correct/total*100):0;
+    const accCol=acc>=80?'var(--green)':acc>=60?'var(--orange)':'var(--pink)';
+    return React.createElement('div',{className:'finished'},
+      React.createElement('div',{className:'fin-card'},
+        React.createElement('div',{className:'fin-title'},'SESSION COMPLETE'),
+        React.createElement('div',{className:'fin-stats'},
+          React.createElement('div',{className:'fin-stat'},React.createElement('div',{className:'fin-val',style:{color:'var(--cyan)'}},total),React.createElement('div',{className:'fin-lbl'},'Answered')),
+          React.createElement('div',{className:'fin-stat'},React.createElement('div',{className:'fin-val',style:{color:'var(--green)'}},correct),React.createElement('div',{className:'fin-lbl'},'Correct')),
+          React.createElement('div',{className:'fin-stat'},React.createElement('div',{className:'fin-val',style:{color:accCol}},acc+'%'),React.createElement('div',{className:'fin-lbl'},'Accuracy')),
+          React.createElement('div',{className:'fin-stat'},React.createElement('div',{className:'fin-val',style:{color:'var(--purple)'}},sessRef.current.maxStreak),React.createElement('div',{className:'fin-lbl'},'Best Streak'))
+        ),
+        React.createElement('div',{className:'fin-acts'},
+          React.createElement('button',{className:'btn btn-primary',onClick:startSession},'PLAY AGAIN'),
+          React.createElement('button',{className:'btn btn-ghost',onClick:()=>setPhase('setup')},'CHANGE SETTINGS')
+        )
+      )
+    );
+  }
+
+  // ── RENDER PLAYING ────────────────────────────────────────────────────────
+  const fbClass=feedback==='idle'?'feedback-msg':feedback==='correct'?'feedback-msg fb-correct':'feedback-msg fb-wrong';
+  const fbText=feedback==='correct'?'✓ Correct!':feedback==='wrong'?'✗ Answer: '+problem.answer:'';
+  const timerCls='timer-disp'+(mode==='timer'&&cd.left<=60?' timer-warn':'');
+  return React.createElement('div',{className:'playing'},
+    React.createElement('div',{className:'game-hdr'},
+      React.createElement('div',{className:'mode-badge'},mode.toUpperCase()),
+      React.createElement('div',{className:timerCls},mode==='timer'?fmtDur(cd.left):sessDisp.total+' solved'),
+      React.createElement('button',{className:'btn btn-ghost btn-sm',onClick:endSession},'END')
+    ),
+    React.createElement('div',{className:'game-layout'},
+      React.createElement('div',{className:'problem-area'},
+        mode==='stream'
+          ?React.createElement(NumberStream,{key:streamProb.id,problem:streamProb,onComplete:handleStreamComplete})
+          :React.createElement(React.Fragment,null,
+            React.createElement(ProblemCard,{problem,feedback,showAnswer:showAns}),
+            React.createElement(AnswerInput,{value:answer,onChange:setAnswer,onSubmit:handleSubmit,disabled:feedback!=='idle'})
+          ),
+        React.createElement('div',{className:fbClass},fbText)
+      ),
+      React.createElement('div',{className:'sidebar'},
+        React.createElement(StatsPanel,{gs,sessCorrect:sessDisp.correct,sessTotal:sessDisp.total,sessStreak:sessDisp.streak})
+      )
+    ),
+    toasts.slice(0,1).map(a=>React.createElement(AchToast,{key:a.id,ach:a,onDone:()=>setToasts(t=>t.slice(1))}))
+  );
+}
+
+// ── Statistics Page ───────────────────────────────────────────────────────────
+function StatisticsPage({schema,setSchema}){
+  const {globalStats:gs,leaderboard}=schema;
+  const [tab,setTab]=useState('overview');
+  const [confirmReset,setConfirmReset]=useState(false);
+  const xp=getXPProgress(gs.xp);
+  const td=getTodayStat(gs.dailyStats);
+  const allAcc=gs.totalAnswered>0?Math.round(gs.totalCorrect/gs.totalAnswered*100):0;
+  const tabs=[['overview','OVERVIEW'],['charts','CHARTS'],['leaderboard','LEADERBOARD'],['achievements','ACHIEVEMENTS']];
+
+  // Week grid
+  const weekDays=Array.from({length:7},(_,i)=>{
+    const date=daysAgo(6-i);
+    const d=gs.dailyStats.find(s=>s.date===date);
+    const label=new Date(date+'T00:00:00').toLocaleDateString('en',{weekday:'short'});
+    return{date,label,total:d?.total??0,correct:d?.correct??0};
+  });
+  const maxTot=Math.max(...weekDays.map(d=>d.total),1);
+
+  return React.createElement('div',{className:'stats-page'},
+    // Hero
+    React.createElement('div',{className:'hero-bar'},
+      React.createElement('div',{className:'hero-left'},
+        React.createElement('div',{className:'player-lv'},
+          React.createElement('div',{className:'lv-circle'},React.createElement('span',{className:'lv-num'},xp.level)),
+          React.createElement('div',{className:'lv-info'},
+            React.createElement('div',{className:'lv-lbl'},'PLAYER LEVEL'),
+            React.createElement('div',{className:'xp-total'},gs.xp.toLocaleString()+' XP total'),
+            React.createElement('div',{className:'xp-outer'},React.createElement('div',{className:'xp-inner',style:{width:xp.pct+'%'}})),
+            React.createElement('div',{className:'xp-next'},xp.needed===Infinity?'Max level!':xp.current+' / '+xp.needed+' to next level')
+          )
+        )
+      ),
+      React.createElement('div',{className:'hero-stats'},
+        HS(gs.totalAnswered.toLocaleString(),'Total Solved','vc'),
+        HS(allAcc+'%','Accuracy','vg'),
+        HS(gs.longestStreak+' 🔥','Best Streak','vo'),
+        HS(td.total,'Today','vp'),
+        HS(td.total>0?Math.round(td.correct/td.total*100)+'%':'—','Today Acc','vg'),
+        HS(td.total>0?fmtTime(td.avgTimeMs):'—','Avg Time','vc')
+      )
+    ),
+    // Tabs
+    React.createElement('div',{className:'tabs'},
+      tabs.map(([id,lbl])=>React.createElement('button',{key:id,className:'tab-btn'+(tab===id?' act':''),onClick:()=>setTab(id)},lbl))
+    ),
+    // Content
+    React.createElement('div',{className:'tab-content'},
+      tab==='overview'&&React.createElement('div',{className:'overview-grid'},
+        React.createElement('div',{className:'ov-sec'},
+          React.createElement('div',{className:'sec-title',style:{marginBottom:10}},'THIS WEEK'),
+          React.createElement('div',{className:'week-grid'},
+            weekDays.map(d=>React.createElement('div',{key:d.date,className:'day-col'},
+              React.createElement('div',{className:'day-bar'},
+                React.createElement('div',{className:'day-fill',style:{height:d.total/maxTot*100+'%',opacity:d.total===0?.15:1}})
+              ),
+              React.createElement('div',{className:'day-tot'},d.total),
+              React.createElement('div',{className:'day-lbl'},d.label)
+            ))
+          )
+        ),
+        React.createElement('div',{className:'ov-sec'},
+          React.createElement('div',{className:'sec-title',style:{marginBottom:10}},'ACHIEVEMENTS ('+gs.achievements.length+'/'+ACHIEVEMENTS.length+')'),
+          React.createElement(AchPanel,{gs})
+        )
+      ),
+      tab==='charts'&&React.createElement(Charts,{dailyStats:gs.dailyStats}),
+      tab==='leaderboard'&&React.createElement('div',null,
+        React.createElement('div',{className:'sec-title',style:{marginBottom:12}},'TOP SESSIONS'),
+        React.createElement(Leaderboard,{entries:leaderboard})
+      ),
+      tab==='achievements'&&React.createElement('div',null,
+        React.createElement('div',{className:'sec-title',style:{marginBottom:12}},'ALL ACHIEVEMENTS ('+gs.achievements.length+'/'+ACHIEVEMENTS.length+')'),
+        React.createElement(AchPanel,{gs})
+      )
+    ),
+    // Reset
+    React.createElement('div',{className:'danger-zone'},
+      !confirmReset
+        ?React.createElement('button',{className:'btn btn-danger btn-sm',onClick:()=>setConfirmReset(true)},'RESET ALL DATA')
+        :React.createElement('div',{className:'confirm-reset'},
+          React.createElement('span',{style:{color:'var(--pink)',fontSize:12}},'Are you sure? This cannot be undone.'),
+          React.createElement('button',{className:'btn btn-danger btn-sm',onClick:()=>{setSchema({...DEFAULT_SCHEMA});setConfirmReset(false);}},'CONFIRM RESET'),
+          React.createElement('button',{className:'btn btn-ghost btn-sm',onClick:()=>setConfirmReset(false)},'CANCEL')
+        )
+    )
+  );
+}
+function HS(val,lbl,color){
+  return React.createElement('div',{className:'h-stat'},
+    React.createElement('div',{className:'h-val '+color},val),
+    React.createElement('div',{className:'h-lbl'},lbl)
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ROOT APP
+// ═══════════════════════════════════════════════════════════════
+function App(){
+  const [schema,setSchema]=useSchema();
+  const [page,setPage]=useState('train');
+  return React.createElement('div',{className:'layout'},
+    React.createElement('div',{className:'grid-bg'}),
+    React.createElement(Navigation,{gs:schema.globalStats,page,setPage}),
+    React.createElement('main',{className:'content'},
+      page==='train'
+        ?React.createElement(TrainingPage,{schema,setSchema})
+        :React.createElement(StatisticsPage,{schema,setSchema})
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
